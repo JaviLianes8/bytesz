@@ -72,16 +72,72 @@ def test_errors_go_to_stderr(capsys: pytest.CaptureFixture[str], mp: pytest.Monk
     assert "not an integer count" in capsys.readouterr().err
     assert run(["format", "--field", "3"], mp, "1 2\n") == 1
     assert "no field 3" in capsys.readouterr().err
-    assert run(["format", "--unit", "kB", "1"], mp) == 1
-    assert "not a iec unit" in capsys.readouterr().err
+    assert run(["format", "--unit", "kB", "5000"], mp) == 0
+    assert capsys.readouterr().out == "5 kB\n"
+
+
+def test_messages_name_flags(capsys: pytest.CaptureFixture[str], mp: pytest.MonkeyPatch) -> None:
+    assert run(["format", "--", "-5"], mp) == 1
+    assert "pass --signed" in capsys.readouterr().err
+    assert run(["format", "+5"], mp) == 1
+    assert "pass --signed" in capsys.readouterr().err
+    assert run(["parse", "4KB"], mp) == 1
+    assert "pass --legacy" in capsys.readouterr().err
+    assert run(["parse", "1 Kibit"], mp) == 1
+    assert "add --bits" in capsys.readouterr().err
+    assert run(["parse", "--bits", "1 kB"], mp) == 1
+    assert "drop --bits" in capsys.readouterr().err
+
+
+def test_integers_are_strict(capsys: pytest.CaptureFixture[str], mp: pytest.MonkeyPatch) -> None:
+    for token in ("1_024", "1.0", chr(0x661), "1e3"):
+        assert run(["format", token], mp) == 1
+        assert "not an integer count" in capsys.readouterr().err
+    assert run(["format", "--signed", "+1024"], mp) == 0
+    assert capsys.readouterr().out == "1 KiB\n"
+
+
+def test_blank_lines_and_bom(capsys: pytest.CaptureFixture[str], mp: pytest.MonkeyPatch) -> None:
+    assert run(["format"], mp, "﻿1024\r\n\r\n  \n2048\n") == 0
+    assert capsys.readouterr().out == "1 KiB\n\n  \n2 KiB\n"
+    assert run(["format", "--field", "2"], mp, "a 1024\n\n") == 0
+    assert capsys.readouterr().out == "a 1 KiB\n\n"
 
 
 def test_usage_errors_exit_2(capsys: pytest.CaptureFixture[str], mp: pytest.MonkeyPatch) -> None:
-    for argv in ([], ["format", "--field", "0", "1"], ["format", "--system", "x", "1"]):
+    for argv in (
+        [],
+        ["format", "--field", "0", "1"],
+        ["format", "--system", "x", "1"],
+        ["format", "--precision", "-1", "5"],
+        ["format", "--unit", "XB", "5"],
+        ["format", "--system", "iec", "--unit", "kB", "5"],
+        ["format", "--bits", "--unit", "MiB", "5"],
+    ):
         with pytest.raises(SystemExit) as caught:
             run(argv, mp)
         assert caught.value.code == 2
-    capsys.readouterr()
+    assert "--unit 'XB' is not one of" in capsys.readouterr().err
+
+
+def test_closed_pipe_is_quiet() -> None:
+    reader = subprocess.Popen(
+        [sys.executable, "-c", "import sys; sys.stdin.readline()"],
+        stdin=subprocess.PIPE,
+    )
+    writer = subprocess.run(
+        [sys.executable, "-m", "bytesz", "format"],
+        input=b"".join(b"%d\n" % n for n in range(300_000)),
+        stdout=reader.stdin,
+        stderr=subprocess.PIPE,
+        env={**os.environ, "PYTHONPATH": str(Path(bytesz.__file__).parents[1])},
+        timeout=300,
+    )
+    assert reader.stdin is not None
+    reader.stdin.close()
+    reader.wait(timeout=60)
+    assert writer.stderr == b""
+    assert writer.returncode in (0, 1)
 
 
 def test_help_and_version(capsys: pytest.CaptureFixture[str], mp: pytest.MonkeyPatch) -> None:
