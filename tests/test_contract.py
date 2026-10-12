@@ -5,11 +5,21 @@ import bytesz
 # The public API. Add every exported name here as the library grows; this list is the
 # contract and the test below fails if the module and this list disagree.
 PUBLIC_API: list[str] = [
+    "IEC_SUFFIXES",
+    "SI_SUFFIXES",
     "AmbiguousUnitError",
     "ByteszError",
+    "FractionalBytesError",
     "InvalidSizeError",
+    "Rounding",
+    "System",
+    "SystemMismatchError",
+    "UnknownUnitError",
+    "convert",
     "format",
+    "format_bits",
     "parse",
+    "parse_bits",
 ]
 
 
