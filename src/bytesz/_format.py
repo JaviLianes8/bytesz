@@ -4,8 +4,16 @@ from __future__ import annotations
 
 from decimal import Decimal, localcontext
 
-from ._errors import InvalidSizeError, UnknownUnitError
-from ._types import Rounding, System, check_decimal_point, check_system, rounding_mode
+from ._errors import InvalidSizeError, SystemMismatchError, UnknownUnitError
+from ._types import (
+    Rounding,
+    System,
+    check_decimal_point,
+    check_system,
+    digit_count,
+    exact_context,
+    rounding_mode,
+)
 from ._units import (
     IEC_BASE,
     IEC_BIT_SUFFIXES,
@@ -16,18 +24,32 @@ from ._units import (
 )
 
 
-def _table(system: str, bits: bool) -> tuple[int, tuple[str, ...]]:
-    check_system(system)
-    if system == "iec":
-        return IEC_BASE, IEC_BIT_SUFFIXES if bits else IEC_SUFFIXES
-    return SI_BASE, SI_BIT_SUFFIXES if bits else SI_SUFFIXES
+def _table(system: str | None, bits: bool, unit: str | None) -> tuple[str, int, tuple[str, ...]]:
+    """Pick the system (inferred from ``unit`` when not given), its base and suffixes."""
+    iec = IEC_BIT_SUFFIXES if bits else IEC_SUFFIXES
+    si = SI_BIT_SUFFIXES if bits else SI_SUFFIXES
+    if system is not None:
+        check_system(system)
+    if unit is not None:
+        if unit not in iec and unit not in si:
+            kind = "bit" if bits else "size"
+            raise UnknownUnitError(f"unknown {kind} unit {unit!r}", unit=unit)
+        owner = "iec" if unit in iec else "si"
+        if system is None or unit in (iec if system == "iec" else si):
+            system = system or owner
+        else:
+            name = "an IEC" if owner == "iec" else "an SI"
+            raise SystemMismatchError(
+                f"{unit!r} is {name} unit but system is {system!r}", unit=unit
+            )
+    if system == "si":
+        return "si", SI_BASE, si
+    return "iec", IEC_BASE, iec
 
 
 def _exact(count: int, base: int, exponent: int) -> Decimal:
     """Return count / base**exponent exactly; every such quotient terminates."""
-    digits = len(str(abs(count))) + 10 * exponent + 2
-    with localcontext() as ctx:
-        ctx.prec = digits
+    with localcontext(exact_context(digit_count(count) + 10 * exponent + 2)):
         return Decimal(count) / (Decimal(base) ** exponent)
 
 
@@ -53,7 +75,7 @@ def _render(
     count: int,
     *,
     bits: bool,
-    system: str,
+    system: str | None,
     precision: int,
     rounding: str,
     unit: str | None,
@@ -61,16 +83,14 @@ def _render(
     decimal_point: str,
     separator: str,
 ) -> str:
-    base, suffixes = _table(system, bits)
+    system, base, suffixes = _table(system, bits, unit)
     if isinstance(precision, bool) or not isinstance(precision, int) or precision < 0:
         raise ValueError("precision must be a non-negative int")
     mode = rounding_mode(rounding)
     check_decimal_point(decimal_point)
-    step = Decimal(1).scaleb(-precision)
+    step = Decimal((0, (1,), -precision))
 
     if unit is not None:
-        if unit not in suffixes:
-            raise UnknownUnitError(f"{unit!r} is not a {system} unit", unit=unit)
         exponent = suffixes.index(unit)
     else:
         exponent = 0
@@ -80,11 +100,11 @@ def _render(
 
     while True:
         scaled = _exact(count, base, exponent)
-        with localcontext() as ctx:
-            ctx.prec = len(str(abs(count))) + precision + 2
+        with localcontext(exact_context(digit_count(count) + precision + 2)):
             rounded = scaled.quantize(step, rounding=mode)
+            reached = rounded.copy_abs() >= base
         # Carry: 1023.999 KiB rounds to 1024.00 KiB, which is 1 MiB.
-        if unit is None and abs(rounded) >= base and exponent < len(suffixes) - 1:
+        if unit is None and reached and exponent < len(suffixes) - 1:
             exponent += 1
             continue
         break
@@ -94,7 +114,7 @@ def _render(
 def format(
     count: int,
     *,
-    system: System = "iec",
+    system: System | None = None,
     precision: int = 2,
     rounding: Rounding = "half-up",
     unit: str | None = None,
@@ -106,12 +126,14 @@ def format(
     """Convert a byte count into a human size such as "1.5 KiB".
 
     ``system`` is "iec" (1024 based: KiB, MiB ... QiB) or "si" (1000 based: kB,
-    MB ... QB). The largest unit that keeps the number at or above one is chosen,
-    the value is rounded to ``precision`` decimals with ``rounding``, and if the
-    rounded value reaches the next unit it carries over (1048575 is "1 MiB", not
+    MB ... QB); when omitted it follows ``unit`` if one is given, else "iec".
+    The largest unit that keeps the number at or above one is chosen, the value
+    is rounded to ``precision`` decimals with ``rounding``, and if the rounded
+    value reaches the next unit it carries over (1048575 is "1 MiB", not
     "1024 KiB"). Trailing zeros are dropped unless ``trailing_zeros`` is true.
 
-    ``unit`` forces one unit of the chosen system, such as "MiB", with no carry.
+    ``unit`` forces one unit, such as "MiB" or "kB", with no carry; a unit from
+    the other system than an explicit ``system`` raises SystemMismatchError.
     ``signed`` allows negative counts. ``decimal_point`` is "." or ",".
     ``separator`` goes between number and unit (" " by default, "" for "1.5KiB").
 

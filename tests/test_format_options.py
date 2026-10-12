@@ -1,8 +1,17 @@
 from __future__ import annotations
 
+import decimal
+
 import pytest
 
-from bytesz import InvalidSizeError, UnknownUnitError, format
+from bytesz import (
+    InvalidSizeError,
+    SystemMismatchError,
+    UnknownUnitError,
+    convert,
+    format,
+    parse,
+)
 
 
 def test_carry_to_next_iec_unit() -> None:
@@ -63,11 +72,27 @@ def test_forced_unit() -> None:
     assert format(5 * 10**9, system="si", unit="MB") == "5000 MB"
 
 
-def test_forced_unit_must_belong_to_the_system() -> None:
-    with pytest.raises(UnknownUnitError):
-        format(1024, unit="kB")
-    with pytest.raises(UnknownUnitError):
+def test_forced_unit_picks_the_system_unless_one_is_pinned() -> None:
+    assert format(5000, unit="kB") == "5 kB"
+    assert format(1536, unit="KiB") == "1.5 KiB"
+    with pytest.raises(SystemMismatchError, match="an SI unit but system is 'iec'"):
+        format(1024, system="iec", unit="kB")
+    with pytest.raises(SystemMismatchError, match="an IEC unit"):
         format(1024, system="si", unit="KiB")
+    with pytest.raises(UnknownUnitError):
+        format(1024, unit="KB")
+
+
+def test_hostile_global_decimal_context_is_ignored() -> None:
+    with decimal.localcontext() as ctx:
+        ctx.traps[decimal.Inexact] = True
+        ctx.Emax, ctx.Emin, ctx.prec = 10, -10, 3
+        assert format(123456789012345) == "112.28 TiB"
+        assert format(10**30, system="si") == "1 QB"
+        assert format(1, unit="QiB", precision=31) == "0.0000000000000000000000000000008 QiB"
+        assert parse("1.0000001 KiB", rounding="half-up") == 1024
+        assert parse("1 QB") == 10**30
+        assert convert(10**30, "B") == 10**30
 
 
 def test_signed_values() -> None:
@@ -91,6 +116,11 @@ def test_bad_option_values_are_rejected() -> None:
         format(1, precision=True)
     with pytest.raises(ValueError):
         format(1, precision=1.5)  # type: ignore[arg-type]
+
+
+def test_inputs_beyond_the_int_str_limit() -> None:
+    # Python caps int to str conversion at 4300 digits by default; bytesz never needs it.
+    assert format(10**5000, system="si", precision=0) == "1" + "0" * 4970 + " QB"
 
 
 def test_huge_values_stay_exact() -> None:

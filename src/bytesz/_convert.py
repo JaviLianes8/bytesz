@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from decimal import Decimal, localcontext
+from decimal import Decimal
 
 from ._errors import InvalidSizeError, UnknownUnitError
 from ._format import _exact
@@ -43,7 +43,8 @@ def convert(count: int, unit: str) -> Decimal:
     base, exponent = _UNITS[unit]
     if count == 0:
         return Decimal(0)
-    exact = _exact(count, base, exponent)
-    with localcontext() as ctx:
-        ctx.prec = len(exact.as_tuple().digits)  # normalize must not round
-        return exact.normalize()
+    # Plain notation: keep integer digits, drop only zeros after the point.
+    text = f"{_exact(count, base, exponent):f}"
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    return Decimal(text)

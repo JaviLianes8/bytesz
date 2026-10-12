@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from ._format import _check_count, _render
+from ._hints import BYTE_SYMBOLS, bit_hint
 from ._parse import _parse_with
 from ._types import Rounding, System
 from ._units import IEC_BIT_UNITS, SI_BIT_UNITS, UPPER_BIT_UNITS
@@ -11,7 +12,7 @@ from ._units import IEC_BIT_UNITS, SI_BIT_UNITS, UPPER_BIT_UNITS
 def format_bits(
     count: int,
     *,
-    system: System = "iec",
+    system: System | None = None,
     precision: int = 2,
     rounding: Rounding = "half-up",
     unit: str | None = None,
@@ -70,6 +71,8 @@ def parse_bits(
         extra={},
         si_pinned={},
         upper=UPPER_BIT_UNITS,
+        foreign=BYTE_SYMBOLS,
+        hint=bit_hint,
         what="bits",
         system=system,
         rounding=rounding,

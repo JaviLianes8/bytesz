@@ -48,3 +48,23 @@ def check_decimal_point(decimal_point: object) -> None:
     """Accept only "." or "," as the decimal separator."""
     if decimal_point not in (".", ","):
         raise ValueError(f"decimal_point must be '.' or ',', not {decimal_point!r}")
+
+
+def exact_context(prec: int) -> decimal.Context:
+    """Return a private context that ignores the caller's global decimal settings.
+
+    Precision is set by the caller to be large enough for an exact result, the
+    exponent range is the widest the platform allows, and only real errors trap.
+    """
+    return decimal.Context(
+        prec=max(prec, 1),
+        rounding=decimal.ROUND_HALF_EVEN,
+        Emax=decimal.MAX_EMAX,
+        Emin=decimal.MIN_EMIN,
+        traps=[decimal.InvalidOperation, decimal.DivisionByZero, decimal.Overflow],
+    )
+
+
+def digit_count(number: int) -> int:
+    """Return an upper bound on the decimal digits of ``number``, without str()."""
+    return abs(number).bit_length() * 30103 // 100000 + 2

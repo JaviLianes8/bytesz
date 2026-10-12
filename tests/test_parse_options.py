@@ -49,10 +49,19 @@ def test_comma_decimal_point() -> None:
 
 
 def test_number_shapes() -> None:
-    assert parse(".5 KiB") == 512
-    assert parse("2. KiB") == 2048
+    assert parse("0.5 KiB") == 512
     assert parse("0007 B") == 7
-    for text in ("1e3 B", "1 000 B", "1_000 B", chr(0x661) + " B", ".", "1..5 B"):
+    for text in (
+        ".5 KiB",
+        "2. KiB",
+        "1.",
+        "1e3 B",
+        "1 000 B",
+        "1_000 B",
+        chr(0x661) + " B",
+        ".",
+        "1..5 B",
+    ):
         with pytest.raises(InvalidSizeError):
             parse(text)
 
@@ -77,6 +86,25 @@ def test_bare_si_prefixes_need_a_pinned_system() -> None:
         parse("1.5M")
     with pytest.raises(AmbiguousUnitError, match="bare prefix"):
         parse("2k")
+
+
+def test_hints_suggest_only_options_that_work() -> None:
+    with pytest.raises(AmbiguousUnitError) as caught:
+        parse("1 k", legacy=True)
+    assert "legacy" not in str(caught.value)
+    with pytest.raises(AmbiguousUnitError) as caught:
+        parse("2M", system="iec")
+    assert "system='si'" not in str(caught.value)
+    assert "legacy=True" in str(caught.value)
+    with pytest.raises(AmbiguousUnitError) as caught:
+        parse("1.5 m")
+    assert "system=" not in str(caught.value)
+    assert "legacy" not in str(caught.value)
+
+
+def test_bit_units_point_at_parse_bits() -> None:
+    with pytest.raises(UnknownUnitError, match="parse_bits"):
+        parse("1 Kibit")
 
 
 def test_legacy_reads_upper_case_units_as_binary() -> None:

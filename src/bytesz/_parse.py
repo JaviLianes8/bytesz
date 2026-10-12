@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from decimal import Decimal, localcontext
 
 from ._errors import (
@@ -14,7 +14,8 @@ from ._errors import (
     SystemMismatchError,
     UnknownUnitError,
 )
-from ._types import Rounding, System, check_decimal_point, rounding_mode
+from ._hints import BIT_SYMBOLS, byte_hint
+from ._types import Rounding, System, check_decimal_point, digit_count, exact_context, rounding_mode
 from ._units import (
     IEC_BARE,
     IEC_BASE,
@@ -28,7 +29,7 @@ from ._units import (
 
 _PATTERNS = {
     point: re.compile(
-        rf"^\s*([+-]?)([0-9]+(?:{re.escape(point)}[0-9]*)?|{re.escape(point)}[0-9]+)"
+        rf"^\s*([+-]?)([0-9]+(?:{re.escape(point)}[0-9]+)?)"
         r"\s*([A-Za-z]*)\s*$"
     )
     for point in (".", ",")
@@ -43,8 +44,9 @@ def _factor(
     extra: Mapping[str, int],
     si_pinned: Mapping[str, int],
     upper: set[str] | frozenset[str],
+    foreign: Mapping[str, str],
     system: str | None,
-    hint: str,
+    hint: Callable[[str, str | None, bool], str],
 ) -> int:
     """Return the multiplier for a suffix, honouring an optional pinned system."""
     if suffix == "" or iec.get(suffix) == 0 or si.get(suffix) == 0:
@@ -61,8 +63,11 @@ def _factor(
         if system == "iec":
             raise SystemMismatchError(f"{suffix!r} is an SI unit but system is 'iec'", unit=suffix)
         return int(SI_BASE ** si[suffix])
+    if suffix in foreign:
+        raise UnknownUnitError(f"{suffix!r} is {foreign[suffix]}", unit=suffix)
     if suffix.upper() in upper:
-        raise AmbiguousUnitError(f"{suffix!r} is ambiguous; {hint}", unit=suffix)
+        reason = hint(suffix, system, bool(extra))
+        raise AmbiguousUnitError(f"{suffix!r} is ambiguous; {reason}", unit=suffix)
     raise UnknownUnitError(f"unknown size unit {suffix!r}", unit=suffix)
 
 
@@ -74,6 +79,8 @@ def _parse_with(
     extra: Mapping[str, int],
     si_pinned: Mapping[str, int],
     upper: set[str] | frozenset[str],
+    foreign: Mapping[str, str],
+    hint: Callable[[str, str | None, bool], str],
     what: str,
     system: str | None,
     rounding: str | None,
@@ -94,17 +101,6 @@ def _parse_with(
     if sign and not signed:
         raise InvalidSizeError(f"{text!r} has a sign; pass signed=True to allow it", text=text)
 
-    unit = "b" if what == "bits" else "B"
-    hint = (
-        f"use k{unit}/M{unit} for 1000 or Ki{unit}/Mi{unit} for 1024"
-        if what == "bits"
-        else "use kB/MB for 1000, KiB/MiB for 1024, or pass legacy=True"
-    )
-    if what == "bytes" and not suffix.endswith(("B", "b")):
-        hint = "a bare prefix needs system='si' (1000) or legacy=True (1024); or write kB or KiB"
-    if what == "bytes" and suffix.endswith("b"):
-        hint = "a lower case 'b' usually means bits (see parse_bits); for bytes use MB or MiB"
-
     try:
         factor = _factor(
             suffix,
@@ -113,6 +109,7 @@ def _parse_with(
             extra=extra,
             si_pinned=si_pinned,
             upper=upper,
+            foreign=foreign,
             system=system,
             hint=hint,
         )
@@ -121,8 +118,7 @@ def _parse_with(
         raise
 
     digits = number.replace(decimal_point, ".")
-    with localcontext() as ctx:
-        ctx.prec = len(digits) + len(str(factor)) + 2
+    with localcontext(exact_context(len(digits) + digit_count(factor) + 2)):
         total = Decimal(digits) * factor
         if sign == "-":
             total = -total
@@ -176,6 +172,8 @@ def parse(
         extra=LEGACY_UNITS if legacy else {},
         si_pinned=SI_BARE_PINNED,
         upper=UPPER_UNITS,
+        foreign=BIT_SYMBOLS,
+        hint=byte_hint,
         what="bytes",
         system=system,
         rounding=rounding,

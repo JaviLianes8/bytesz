@@ -29,11 +29,13 @@ def test_parse_bits_long_and_short_symbols() -> None:
 
 
 def test_parse_bits_ambiguity_and_errors() -> None:
-    for text in ("1 Kb", "1 MB", "1 B"):
-        with pytest.raises(AmbiguousUnitError):
+    with pytest.raises(AmbiguousUnitError):
+        parse_bits("1 Kb")
+    for text in ("1 MB", "1 B", "1 kB", "1 KiB", "1 KB", "1 bytes"):
+        with pytest.raises(UnknownUnitError):
             parse_bits(text)
-    with pytest.raises(UnknownUnitError):
-        parse_bits("1 bytes")
+    with pytest.raises(UnknownUnitError, match="byte unit"):
+        parse_bits("1 MB")
     with pytest.raises(SystemMismatchError):
         parse_bits("1 Mibit", system="si")
     with pytest.raises(FractionalBytesError, match="bits"):
@@ -50,6 +52,7 @@ def test_format_bits() -> None:
     assert format_bits(1000, system="si", unit="Mbit", precision=3) == "0.001 Mbit"
     with pytest.raises(UnknownUnitError):
         format_bits(1, unit="MiB")
+    assert format_bits(1000, unit="kbit") == "1 kbit"
     with pytest.raises(InvalidSizeError):
         format_bits(-1)
 

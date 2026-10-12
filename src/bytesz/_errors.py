@@ -1,7 +1,8 @@
 """Exceptions raised by bytesz.
 
-Every error is a ``ValueError`` through :class:`ByteszError`, so callers that
-only care about "bad input" can catch one class. The narrower classes carry the
+Every input error is a ``ValueError`` through :class:`ByteszError`, so callers
+that only care about "bad input" can catch one class. Bad option values raise a
+plain ``ValueError`` and a non-string input raises ``TypeError``. The narrower classes carry the
 offending ``text`` and ``unit`` for messages and logs.
 """
 
