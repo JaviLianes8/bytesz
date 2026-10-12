@@ -40,7 +40,9 @@ def test_rounding_is_half_up() -> None:
 
 
 def test_largest_unit_is_capped() -> None:
-    assert format(1024**9, system="iec").endswith("YiB")
+    assert format(1024**9, system="iec") == "1 RiB"
+    assert format(1024**11, system="iec") == "1024 QiB"
+    assert format(1000**11, system="si") == "1000 QB"
 
 
 def test_negative_is_rejected() -> None:
