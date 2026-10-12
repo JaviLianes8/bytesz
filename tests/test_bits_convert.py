@@ -70,6 +70,9 @@ def test_convert_is_exact() -> None:
     assert convert(1_000_000, "Mbit") == 1
     assert convert(0, "GiB") == 0
     assert convert(-2048, "KiB") == -2
+    big = 10**40 + 1
+    assert convert(big, "B") == big
+    assert convert(big, "kB") == Decimal("1" + "0" * 37 + ".001")
 
 
 def test_convert_rejects_bad_input() -> None:

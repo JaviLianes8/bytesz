@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import Decimal, localcontext
 
 from ._errors import InvalidSizeError, UnknownUnitError
 from ._format import _exact
@@ -41,4 +41,9 @@ def convert(count: int, unit: str) -> Decimal:
     if unit not in _UNITS:
         raise UnknownUnitError(f"unknown size unit {unit!r}", unit=unit)
     base, exponent = _UNITS[unit]
-    return _exact(count, base, exponent).normalize() if count else Decimal(0)
+    if count == 0:
+        return Decimal(0)
+    exact = _exact(count, base, exponent)
+    with localcontext() as ctx:
+        ctx.prec = len(exact.as_tuple().digits)  # normalize must not round
+        return exact.normalize()
