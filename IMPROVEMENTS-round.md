@@ -10,7 +10,7 @@ Progress:
 - [x] CLI (`bytesz format`, `bytesz parse`, numfmt-like `--field` over stdin)
 - [x] Docs: README, GUIDE, CHANGELOG, docstrings
 - [x] Gates: ruff format, ruff check, mypy --strict, pytest
-- [ ] Contracts, seeded cross-check against GNU numfmt, real wheel e2e
+- [x] Contracts, seeded cross-check against GNU numfmt, real wheel e2e
 - [ ] Pull request opened
 - [ ] Independent review findings fixed, guard clean
 
