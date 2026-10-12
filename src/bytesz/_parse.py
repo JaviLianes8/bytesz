@@ -100,6 +100,8 @@ def _parse_with(
         if what == "bits"
         else "use kB/MB for 1000, KiB/MiB for 1024, or pass legacy=True"
     )
+    if what == "bytes" and not suffix.endswith(("B", "b")):
+        hint = "a bare prefix needs system='si' (1000) or legacy=True (1024); or write kB or KiB"
     if what == "bytes" and suffix.endswith("b"):
         hint = "a lower case 'b' usually means bits (see parse_bits); for bytes use MB or MiB"
 
