@@ -12,7 +12,8 @@ All notable changes to this project are documented here. The format follows
 
 - The 2022 SI prefixes ronna and quetta (`RB`, `QB`) and the IEC 80000-13:2025
   prefixes robi and quebi (`RiB`, `QiB`).
-- `format` options: `rounding` (`half-up`, `half-even`, `half-down`, `up`, `down`,
+- `format` options (also on `format_bits`): `system` may be omitted and then follows
+  `unit` (default IEC); `rounding` (`half-up`, `half-even`, `half-down`, `up`, `down`,
   `ceiling`, `floor`), `unit` to force one unit, `signed`, `trailing_zeros`,
   `decimal_point` and `separator`.
 - `parse` options: `rounding` for values that are not whole bytes, `signed`,
@@ -34,12 +35,15 @@ All notable changes to this project are documented here. The format follows
   `"1024 KiB"`.
 - Counts of 1024**9 bytes and above now use `RiB` and `QiB` (and `RB`, `QB` for SI)
   instead of large numbers of `YiB`.
-- A lower case `b` in `parse` now explains that it means bits.
+- A lower case `b` in `parse` now explains that it means bits, and a bit unit such
+  as `Kibit` raises `UnknownUnitError` pointing at `parse_bits`.
 
 ### Fixed
 
 - Parsing stays exact for long inputs and the largest units; the default decimal
   context used to round products above 28 digits.
+- Arithmetic runs in a private decimal context, so a caller's global settings
+  (traps, precision, exponent limits) no longer change or break the results.
 
 ## [0.1.0]
 

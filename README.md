@@ -38,7 +38,8 @@ parse("1.5 B")  # FractionalBytesError: not a whole number of bytes
 parse("1 kB", system="iec")  # SystemMismatchError: an SI unit under a pinned IEC system
 ```
 
-Every error is a `ByteszError`, which is a `ValueError`, and carries `.text` and `.unit`.
+Every input error is a `ByteszError` (a `ValueError`) carrying `.text` and `.unit`. Bad
+option values raise a plain `ValueError`, and a non-string input to `parse` a `TypeError`.
 
 ## Options
 
@@ -48,6 +49,7 @@ from bytesz import convert, format, format_bits, parse, parse_bits
 # Formatting
 format(1250, system="si", precision=1, rounding="half-even")  # "1.2 kB"
 format(1_000_000, unit="MiB")  # "0.95 MiB"
+format(5000, unit="kB")  # "5 kB" (the unit picks the system)
 format(-1536, signed=True)  # "-1.5 KiB"
 format(1536, precision=3, trailing_zeros=True)  # "1.500 KiB"
 format(1536, decimal_point=",", separator="")  # "1,5KiB"
@@ -97,8 +99,9 @@ as the same 1024 based value, and `bitmath` mixes bits and bytes with a broad AP
 directions are exact, and anything ambiguous or fractional is rejected with a clear
 error instead of being rounded, unless you ask for rounding. Reach for it when a
 wrong factor of 1024 would be a real bug, such as quotas, billing, or on-disk
-accounting. Its formatting agrees with GNU `numfmt` digit for digit (checked in the
-test suite), except where `numfmt` itself drifts because it divides in floating point.
+accounting. With matching `--round` and `--format=%.Nf`, its formatting agrees with
+GNU `numfmt` (checked in the test suite on seeded values), except where `numfmt` itself
+drifts because it divides in floating point.
 
 See [GUIDE.md](GUIDE.md) for the rules in depth.
 

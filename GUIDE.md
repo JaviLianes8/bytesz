@@ -83,7 +83,9 @@ below 1024 KiB. In SI, 999.95 kB does carry to `1 MB`. GNU `numfmt` behaves the 
 | `floor` | toward negative infinity | `down` |
 
 Note that `numfmt` defaults to `from-zero` while `bytesz` defaults to `half-up`.
-Pass `unit="MiB"` to force a unit; there is no carry then. `convert(count, unit)`
+Pass `unit="MiB"` to force a unit; there is no carry then, and the unit picks the
+system unless you also pass `system` (a unit from the other one raises
+`SystemMismatchError`). `convert(count, unit)`
 gives the exact `Decimal` value with no rounding at all.
 
 ## Fractions when parsing
@@ -111,8 +113,8 @@ from the locale. `separator` sets the text between number and unit when formatti
 | ----- | ----------- | ----------- |
 | `ByteszError` | base class | `ValueError` |
 | `InvalidSizeError` | malformed input, a sign without `signed=True` | `ByteszError` |
-| `AmbiguousUnitError` | `KB`, `Mb`, `kib`, bare `M` without a pinned system | `ByteszError` |
-| `UnknownUnitError` | not a size unit at all | `InvalidSizeError` |
+| `AmbiguousUnitError` | `KB`, `Mb`, `kib`, a bare `M` unless `system="si"` or `legacy=True` | `ByteszError` |
+| `UnknownUnitError` | not a size unit, or a bit unit given to `parse` (and the reverse) | `InvalidSizeError` |
 | `SystemMismatchError` | an SI unit with `system="iec"` or the reverse | `InvalidSizeError` |
 | `FractionalBytesError` | not a whole byte and no `rounding` | `InvalidSizeError` |
 
@@ -132,5 +134,8 @@ bytesz parse  [--system iec|si] [--legacy] [--rounding MODE] [--signed]
 
 With no values, each line of stdin is one value. `--field N` converts only the Nth
 whitespace separated field and keeps the rest of the line, so a size in that field
-must be written without an inner space (`1.5MiB`). The first error stops the run,
-goes to stderr, and the exit status is 1; usage errors exit with 2.
+must be written without an inner space (`1.5MiB`). Blank lines pass through and a
+leading byte order mark is ignored. `format` takes plain ASCII integers only. The
+first error stops the run, goes to stderr, and the exit status is 1; usage errors,
+such as a negative `--precision` or an unknown `--unit`, exit with 2. Messages name
+the flags (`--signed`, `--legacy`) rather than the keyword arguments.

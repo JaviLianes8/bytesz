@@ -38,6 +38,9 @@ Changelog = "https://github.com/JaviLianes8/bytesz/blob/main/CHANGELOG.md"
 LinkedIn = "https://www.linkedin.com/in/jlianes/"
 Funding = "https://buymeacoffee.com/jlianesglrs"
 
+[tool.hatch.build.targets.sdist]
+exclude = ["IMPROVEMENTS-round*.md", ".github"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/bytesz"]
 

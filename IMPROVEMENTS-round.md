@@ -12,7 +12,7 @@ Progress:
 - [x] Gates: ruff format, ruff check, mypy --strict, pytest
 - [x] Contracts, seeded cross-check against GNU numfmt, real wheel e2e
 - [x] Pull request opened (#2)
-- [ ] Independent review findings fixed, guard clean
+- [x] Independent review findings fixed, guard clean
 
 ## Sources (fetched 2026-10-12)
 
