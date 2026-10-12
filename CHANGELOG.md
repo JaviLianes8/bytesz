@@ -6,6 +6,41 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0]
+
+### Added
+
+- The 2022 SI prefixes ronna and quetta (`RB`, `QB`) and the IEC 80000-13:2025
+  prefixes robi and quebi (`RiB`, `QiB`).
+- `format` options: `rounding` (`half-up`, `half-even`, `half-down`, `up`, `down`,
+  `ceiling`, `floor`), `unit` to force one unit, `signed`, `trailing_zeros`,
+  `decimal_point` and `separator`.
+- `parse` options: `rounding` for values that are not whole bytes, `signed`,
+  `decimal_point`, and an opt-in `legacy` mode that reads `KB`, `MB`, `GB` (and bare
+  `K`, `M`, `G`) as powers of 1024. Bare IEC prefixes (`1.5Mi`) are accepted, and bare
+  SI prefixes (`1.5M`) when `system="si"` is pinned, matching `numfmt` output.
+- `parse_bits` and `format_bits` for bit counts with the `bit` symbol.
+- `convert(count, unit)` for the exact `Decimal` value in one unit.
+- Typed errors `UnknownUnitError`, `SystemMismatchError` and `FractionalBytesError`,
+  all subclasses of `InvalidSizeError`; every error carries `.text` and `.unit`.
+- `System` and `Rounding` type aliases, `IEC_SUFFIXES` and `SI_SUFFIXES`.
+- A `bytesz` command with `format` and `parse` subcommands, stdin input and a
+  numfmt style `--field` option. Also runnable as `python -m bytesz`.
+- GUIDE.md.
+
+### Changed
+
+- Rounding now carries into the next unit: `format(1048575)` is `"1 MiB"` instead of
+  `"1024 KiB"`.
+- Counts of 1024**9 bytes and above now use `RiB` and `QiB` (and `RB`, `QB` for SI)
+  instead of large numbers of `YiB`.
+- A lower case `b` in `parse` now explains that it means bits.
+
+### Fixed
+
+- Parsing stays exact for long inputs and the largest units; the default decimal
+  context used to round products above 28 digits.
+
 ## [0.1.0]
 
 - `parse` turns a human size into an exact integer number of bytes, choosing the

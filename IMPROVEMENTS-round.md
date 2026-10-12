@@ -2,14 +2,14 @@
 
 Progress:
 - [x] Brainstorm ranked improvements (this file)
-- [ ] Unit tables: 2022 SI prefixes (ronna, quetta) and IEC 80000-13:2025 (robi, quebi)
-- [ ] Format: rounding modes with carry, forced unit, signed values, decimal point, trailing zeros
-- [ ] Parse: rounding of fractional bytes, signed values, decimal point, opt-in JEDEC legacy units
-- [ ] Bits: parse_bits and format_bits
-- [ ] Typed errors with attributes, exported type aliases, exact convert()
-- [ ] CLI (`bytesz format`, `bytesz parse`, numfmt-like `--field` over stdin)
-- [ ] Docs: README, GUIDE, CHANGELOG, docstrings
-- [ ] Gates: ruff format, ruff check, mypy --strict, pytest
+- [x] Unit tables: 2022 SI prefixes (ronna, quetta) and IEC 80000-13:2025 (robi, quebi)
+- [x] Format: rounding modes with carry, forced unit, signed values, decimal point, trailing zeros
+- [x] Parse: rounding of fractional bytes, signed values, decimal point, opt-in JEDEC legacy units
+- [x] Bits: parse_bits and format_bits
+- [x] Typed errors with attributes, exported type aliases, exact convert()
+- [x] CLI (`bytesz format`, `bytesz parse`, numfmt-like `--field` over stdin)
+- [x] Docs: README, GUIDE, CHANGELOG, docstrings
+- [x] Gates: ruff format, ruff check, mypy --strict, pytest
 - [ ] Contracts, seeded cross-check against GNU numfmt, real wheel e2e
 - [ ] Pull request opened
 - [ ] Independent review findings fixed, guard clean
