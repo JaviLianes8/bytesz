@@ -11,7 +11,7 @@ Progress:
 - [x] Docs: README, GUIDE, CHANGELOG, docstrings
 - [x] Gates: ruff format, ruff check, mypy --strict, pytest
 - [x] Contracts, seeded cross-check against GNU numfmt, real wheel e2e
-- [ ] Pull request opened
+- [x] Pull request opened (#2)
 - [ ] Independent review findings fixed, guard clean
 
 ## Sources (fetched 2026-10-12)
