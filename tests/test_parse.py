@@ -79,4 +79,4 @@ def test_garbage_is_rejected() -> None:
 
 def test_unknown_system_argument_is_rejected() -> None:
     with pytest.raises(ValueError):
-        parse("1 kB", system="metric")
+        parse("1 kB", system="metric")  # type: ignore[arg-type]

@@ -57,8 +57,8 @@ def test_format_bits() -> None:
 def test_bits_round_trip() -> None:
     for count in (0, 1, 8, 1000, 1024, 10**12, 1024**10):
         for system in ("iec", "si"):
-            text = format_bits(count, system=system, precision=40)  # type: ignore[arg-type]
-            assert parse_bits(text, system=system) == count  # type: ignore[arg-type]
+            text = format_bits(count, system=system, precision=40)
+            assert parse_bits(text, system=system) == count
 
 
 def test_convert_is_exact() -> None:

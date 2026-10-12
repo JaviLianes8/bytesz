@@ -59,7 +59,7 @@ def test_non_int_is_rejected() -> None:
 
 def test_unknown_system_is_rejected() -> None:
     with pytest.raises(ValueError):
-        format(1024, system="metric")
+        format(1024, system="metric")  # type: ignore[arg-type]
 
 
 def test_negative_precision_is_rejected() -> None:
